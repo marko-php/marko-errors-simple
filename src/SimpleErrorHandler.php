@@ -9,6 +9,7 @@ use Marko\Errors\Contracts\ErrorHandlerInterface;
 use Marko\Errors\ErrorReport;
 use Marko\Errors\Severity;
 use Marko\ErrorsSimple\Formatters\BasicHtmlFormatter;
+use Marko\ErrorsSimple\Formatters\JsonFormatter;
 use Marko\ErrorsSimple\Formatters\TextFormatter;
 use Throwable;
 
@@ -17,6 +18,8 @@ class SimpleErrorHandler implements ErrorHandlerInterface
     private readonly TextFormatter $textFormatter;
 
     private readonly BasicHtmlFormatter $htmlFormatter;
+
+    private readonly JsonFormatter $jsonFormatter;
 
     protected bool $registered = false;
 
@@ -40,6 +43,7 @@ class SimpleErrorHandler implements ErrorHandlerInterface
             $this->environment,
             $extractor,
         );
+        $this->jsonFormatter = new JsonFormatter($this->environment);
     }
 
     public function handle(
@@ -52,8 +56,19 @@ class SimpleErrorHandler implements ErrorHandlerInterface
             if ($this->environment->isCli()) {
                 echo $this->textFormatter->format($report);
             } else {
-                $this->setHttpStatusCode(500);
-                echo $this->htmlFormatter->format($report);
+                $this->setHttpStatusCode(HttpErrorStatus::statusCode($report->throwable));
+
+                foreach (HttpErrorStatus::headers($report->throwable) as $name => $value) {
+                    $this->sendHeader($name, $value);
+                }
+
+                if ($this->environment->acceptsJson()) {
+                    $this->sendHeader('Content-Type', JsonFormatter::CONTENT_TYPE);
+                    echo $this->jsonFormatter->format($report);
+                } else {
+                    $this->sendHeader('Content-Type', BasicHtmlFormatter::CONTENT_TYPE);
+                    echo $this->htmlFormatter->format($report);
+                }
             }
         } catch (Throwable) {
             // Fall back to plain text if formatter fails
@@ -74,6 +89,15 @@ class SimpleErrorHandler implements ErrorHandlerInterface
     ): void {
         if (!headers_sent()) {
             http_response_code($code);
+        }
+    }
+
+    protected function sendHeader(
+        string $name,
+        string $value,
+    ): void {
+        if (!headers_sent()) {
+            header("$name: $value");
         }
     }
 
