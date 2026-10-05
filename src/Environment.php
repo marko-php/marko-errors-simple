@@ -11,11 +11,13 @@ class Environment
     /**
      * @param array<string, string>|null $envVars
      * @param array<string, mixed>|null $server Request server variables; defaults to $_SERVER
+     * @param AppEnvironment|null $appEnvironment The application environment; defaults to one built from $envVars
      */
     public function __construct(
         private ?string $sapi = null,
         private ?array $envVars = null,
         private ?array $server = null,
+        private ?AppEnvironment $appEnvironment = null,
     ) {}
 
     public function isCli(): bool
@@ -34,7 +36,16 @@ class Environment
      */
     public function isDevelopment(): bool
     {
-        return new AppEnvironment($this->envVars)->isDevelopment();
+        return $this->appEnvironment()->isDevelopment();
+    }
+
+    /**
+     * The core AppEnvironment this instance delegates to: the injected one,
+     * or one that reads $envVars (or the real environment when null).
+     */
+    public function appEnvironment(): AppEnvironment
+    {
+        return $this->appEnvironment ?? new AppEnvironment($this->envVars);
     }
 
     /**

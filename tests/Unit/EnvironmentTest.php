@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Marko\Core\Environment\AppEnvironment;
 use Marko\ErrorsSimple\Environment;
 
 it('detects CLI context from PHP_SAPI', function (): void {
@@ -134,4 +135,20 @@ it('can be overridden for testing', function (): void {
         ->and($environment->isWeb())->toBeTrue()
         ->and($environment->isDevelopment())->toBeTrue()
         ->and($environment->isProduction())->toBeFalse();
+});
+
+it('delegates to an injected AppEnvironment', function (): void {
+    $appEnvironment = new AppEnvironment(['APP_ENV' => 'local']);
+    $environment = new Environment(envVars: ['APP_ENV' => 'production'], appEnvironment: $appEnvironment);
+
+    expect($environment->appEnvironment())->toBe($appEnvironment)
+        ->and($environment->isDevelopment())->toBeTrue()
+        ->and($environment->isProduction())->toBeFalse();
+});
+
+it('builds its AppEnvironment from envVars when none is injected', function (): void {
+    $environment = new Environment(envVars: ['MARKO_ENV' => 'dev']);
+
+    expect($environment->appEnvironment()->name())->toBe('dev')
+        ->and($environment->isDevelopment())->toBeTrue();
 });
