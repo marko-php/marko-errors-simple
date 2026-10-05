@@ -15,8 +15,8 @@ it('detects web context from PHP_SAPI', function (): void {
     // Override the SAPI to simulate web context
     $environment = new Environment(sapi: 'apache2handler');
 
-    expect($environment->isWeb())->toBeTrue();
-    expect($environment->isCli())->toBeFalse();
+    expect($environment->isWeb())->toBeTrue()
+        ->and($environment->isCli())->toBeFalse();
 });
 
 it('detects development mode from MARKO_ENV', function (): void {
@@ -32,12 +32,26 @@ it('detects development mode from APP_ENV as fallback', function (): void {
     expect($environment->isDevelopment())->toBeTrue();
 });
 
-it('defaults to development when no environment variable set', function (): void {
-    // Empty envVars means no environment variables — default to loud errors
+it('treats an unset environment as production', function (): void {
+    // Empty envVars means no environment variables — fail safe and hide error details
     $environment = new Environment(envVars: []);
+
+    expect($environment->isProduction())->toBeTrue()
+        ->and($environment->isDevelopment())->toBeFalse();
+});
+
+it('prefers MARKO_ENV over APP_ENV', function (): void {
+    $environment = new Environment(envVars: ['MARKO_ENV' => 'local', 'APP_ENV' => 'production']);
 
     expect($environment->isDevelopment())->toBeTrue()
         ->and($environment->isProduction())->toBeFalse();
+});
+
+it('treats non-development environments such as staging as production', function (): void {
+    $environment = new Environment(envVars: ['APP_ENV' => 'staging']);
+
+    expect($environment->isProduction())->toBeTrue()
+        ->and($environment->isDevelopment())->toBeFalse();
 });
 
 it('recognizes dev as development', function (): void {
@@ -61,15 +75,15 @@ it('recognizes local as development', function (): void {
 it('recognizes production as production', function (): void {
     $environment = new Environment(envVars: ['MARKO_ENV' => 'production']);
 
-    expect($environment->isProduction())->toBeTrue();
-    expect($environment->isDevelopment())->toBeFalse();
+    expect($environment->isProduction())->toBeTrue()
+        ->and($environment->isDevelopment())->toBeFalse();
 });
 
 it('recognizes prod as production', function (): void {
     $environment = new Environment(envVars: ['MARKO_ENV' => 'prod']);
 
-    expect($environment->isProduction())->toBeTrue();
-    expect($environment->isDevelopment())->toBeFalse();
+    expect($environment->isProduction())->toBeTrue()
+        ->and($environment->isDevelopment())->toBeFalse();
 });
 
 it('is case insensitive for environment values', function (): void {
@@ -83,29 +97,29 @@ it('is case insensitive for environment values', function (): void {
 it('provides isCli method', function (): void {
     $environment = new Environment();
 
-    expect($environment->isCli())->toBeBool();
-    expect(method_exists($environment, 'isCli'))->toBeTrue();
+    expect($environment->isCli())->toBeBool()
+        ->and(method_exists($environment, 'isCli'))->toBeTrue();
 });
 
 it('provides isWeb method', function (): void {
     $environment = new Environment();
 
-    expect($environment->isWeb())->toBeBool();
-    expect(method_exists($environment, 'isWeb'))->toBeTrue();
+    expect($environment->isWeb())->toBeBool()
+        ->and(method_exists($environment, 'isWeb'))->toBeTrue();
 });
 
 it('provides isDevelopment method', function (): void {
     $environment = new Environment();
 
-    expect($environment->isDevelopment())->toBeBool();
-    expect(method_exists($environment, 'isDevelopment'))->toBeTrue();
+    expect($environment->isDevelopment())->toBeBool()
+        ->and(method_exists($environment, 'isDevelopment'))->toBeTrue();
 });
 
 it('provides isProduction method', function (): void {
     $environment = new Environment();
 
-    expect($environment->isProduction())->toBeBool();
-    expect(method_exists($environment, 'isProduction'))->toBeTrue();
+    expect($environment->isProduction())->toBeBool()
+        ->and(method_exists($environment, 'isProduction'))->toBeTrue();
 });
 
 it('can be overridden for testing', function (): void {
@@ -116,10 +130,8 @@ it('can be overridden for testing', function (): void {
     );
 
     // SAPI override: should not be CLI even though running in CLI
-    expect($environment->isCli())->toBeFalse();
-    expect($environment->isWeb())->toBeTrue();
-
-    // Environment override: should be development
-    expect($environment->isDevelopment())->toBeTrue();
-    expect($environment->isProduction())->toBeFalse();
+    expect($environment->isCli())->toBeFalse()
+        ->and($environment->isWeb())->toBeTrue()
+        ->and($environment->isDevelopment())->toBeTrue()
+        ->and($environment->isProduction())->toBeFalse();
 });
