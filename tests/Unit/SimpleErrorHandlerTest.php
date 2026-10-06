@@ -11,6 +11,7 @@ use Marko\Errors\ErrorReport;
 use Marko\Errors\Severity;
 use Marko\ErrorsSimple\CodeSnippetExtractor;
 use Marko\ErrorsSimple\Environment;
+use Marko\ErrorsSimple\Formatters\BasicHtmlFormatter;
 use Marko\ErrorsSimple\Formatters\TextFormatter;
 use Marko\ErrorsSimple\SimpleErrorHandler;
 use Marko\Testing\Fake\FakeClock;
@@ -362,6 +363,56 @@ describe('SimpleErrorHandler', function (): void {
         // (plain text, not formatted).
         expect($output)->toContain('Original error')
             ->not->toContain('Stack Trace');
+    });
+
+    it('echoes a fixed string from the formatter fallback in production', function (): void {
+        $environment = new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'production']);
+
+        $failingFormatter = new class ($environment, new CodeSnippetExtractor()) extends TextFormatter
+        {
+            public function format(
+                ErrorReport $report,
+            ): string {
+                throw new RuntimeException('Formatter failed!');
+            }
+        };
+
+        $handler = new TestableErrorHandler($environment, new FakeClock(), $failingFormatter);
+
+        $exception = new Exception('Sensitive internal error details');
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
+
+        ob_start();
+        $handler->handle($report);
+        $output = ob_get_clean();
+
+        expect($output)->toBe("Server Error\n")
+            ->not->toContain('Sensitive internal error details');
+    });
+
+    it('escapes the message from the formatter fallback on the web in development', function (): void {
+        $environment = new Environment(sapi: 'cgi', envVars: ['MARKO_ENV' => 'development'], server: []);
+
+        $failingFormatter = new class ($environment, new CodeSnippetExtractor()) extends BasicHtmlFormatter
+        {
+            public function format(
+                ErrorReport $report,
+            ): string {
+                throw new RuntimeException('Formatter failed!');
+            }
+        };
+
+        $handler = new TestableErrorHandler($environment, new FakeClock(), htmlFormatter: $failingFormatter);
+
+        $exception = new Exception('<script>alert(1)</script>');
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
+
+        ob_start();
+        $handler->handle($report);
+        $output = ob_get_clean();
+
+        expect($output)->toContain('&lt;script&gt;alert(1)&lt;/script&gt;')
+            ->not->toContain('<script>');
     });
 
     it('sets HTTP 500 status code for web errors', function (): void {

@@ -73,9 +73,27 @@ class SimpleErrorHandler implements ErrorHandlerInterface
                 }
             }
         } catch (Throwable) {
-            // Fall back to plain text if formatter fails
-            echo "Error: $report->message\n";
+            echo $this->fallbackOutput($report);
         }
+    }
+
+    /**
+     * Plain output used when a formatter itself fails. Production never sees
+     * the exception message; development sees it escaped on the web so a
+     * message carrying markup cannot inject into the page.
+     */
+    protected function fallbackOutput(
+        ErrorReport $report,
+    ): string {
+        if ($this->environment->isProduction()) {
+            return "Server Error\n";
+        }
+
+        if ($this->environment->isCli()) {
+            return "Error: $report->message\n";
+        }
+
+        return 'Error: ' . htmlspecialchars($report->message, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . "\n";
     }
 
     protected function clearOutputBuffers(): void
@@ -203,17 +221,11 @@ class SimpleErrorHandler implements ErrorHandlerInterface
             return;
         }
 
-        // Restore previous exception handler
+        // Pop our handlers off PHP's handler stacks, which reinstates whatever
+        // was active before register(). Re-setting the previous handler here
+        // would push a duplicate onto the stack.
         restore_exception_handler();
-        if ($this->previousExceptionHandler !== null) {
-            set_exception_handler($this->previousExceptionHandler);
-        }
-
-        // Restore previous error handler
         restore_error_handler();
-        if ($this->previousErrorHandler !== null) {
-            set_error_handler($this->previousErrorHandler);
-        }
 
         $this->registered = false;
     }
