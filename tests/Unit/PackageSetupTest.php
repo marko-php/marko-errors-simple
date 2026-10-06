@@ -2,6 +2,11 @@
 
 declare(strict_types=1);
 
+use Marko\Core\Container\Container;
+use Marko\Core\Container\ContainerInterface;
+use Marko\Core\Container\PreferenceRegistry;
+use Marko\Core\Environment\AppEnvironment;
+use Marko\Core\Error\BootstrapErrorHandler;
 use Marko\Errors\Contracts\ErrorHandlerInterface;
 use Marko\ErrorsSimple\CodeSnippetExtractor;
 use Marko\ErrorsSimple\Environment;
@@ -53,6 +58,39 @@ describe('Package Setup', function () {
         $module = require $modulePath;
         expect($module)->toHaveKey('boot');
         expect($module['boot'])->toBeCallable();
+    });
+
+    it('replaces the core bootstrap error handler instead of stacking on top of it', function () use ($modulePath) {
+        $module = require $modulePath;
+        $peek = static function (): mixed {
+            $current = set_exception_handler(null);
+            restore_exception_handler();
+
+            return $current;
+        };
+        $original = $peek();
+        $moduleHandler = static function (Throwable $throwable): void {};
+        $errorHandler = test()->createStub(ErrorHandlerInterface::class);
+        $errorHandler->method('register')->willReturnCallback(
+            static function () use ($moduleHandler): void {
+                set_exception_handler($moduleHandler);
+            },
+        );
+        $container = new Container(new PreferenceRegistry());
+        $container->instance(ContainerInterface::class, $container);
+        $container->instance(ErrorHandlerInterface::class, $errorHandler);
+        $bootstrapErrorHandler = new BootstrapErrorHandler(new AppEnvironment(['APP_ENV' => 'local']));
+        $container->instance(BootstrapErrorHandler::class, $bootstrapErrorHandler);
+
+        $bootstrapErrorHandler->register();
+        $container->call($module['boot']);
+        $active = $peek();
+        restore_exception_handler();
+        $underneath = $peek();
+
+        expect($active)->toBe($moduleHandler)
+            ->and($underneath)->toBe($original)
+            ->and($bootstrapErrorHandler->isActive())->toBeFalse();
     });
 
     it('exports SimpleErrorHandler', function () {
