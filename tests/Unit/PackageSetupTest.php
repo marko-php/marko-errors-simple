@@ -31,7 +31,7 @@ describe('Package Setup', function () {
     });
 
     it('has no other dependencies', function () use ($composerJson) {
-        $expectedDeps = ['php', 'marko/core', 'marko/errors'];
+        $expectedDeps = ['php', 'marko/core', 'marko/clock', 'marko/errors'];
         $actualDeps = array_keys($composerJson['require']);
         sort($expectedDeps);
         sort($actualDeps);

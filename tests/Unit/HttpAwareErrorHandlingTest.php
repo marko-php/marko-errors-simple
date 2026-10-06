@@ -103,7 +103,11 @@ describe('Environment::acceptsJson()', function (): void {
 
 describe('JsonFormatter', function (): void {
     it('renders a generic JSON body in production', function (): void {
-        $report = ErrorReport::fromThrowable(new RuntimeException('SQLSTATE secret at /var/www'), Severity::Error, new DateTimeImmutable());
+        $report = ErrorReport::fromThrowable(
+            new RuntimeException('SQLSTATE secret at /var/www'),
+            Severity::Error,
+            new DateTimeImmutable(),
+        );
 
         $json = (new JsonFormatter(webEnvironment(production: true)))->format($report);
 
@@ -126,7 +130,11 @@ describe('JsonFormatter', function (): void {
     });
 
     it('renders an HTTP exception response data even in production', function (): void {
-        $report = ErrorReport::fromThrowable(new TeapotException('internal detail'), Severity::Error, new DateTimeImmutable());
+        $report = ErrorReport::fromThrowable(
+            new TeapotException('internal detail'),
+            Severity::Error,
+            new DateTimeImmutable(),
+        );
 
         $json = (new JsonFormatter(webEnvironment(production: true)))->format($report);
 

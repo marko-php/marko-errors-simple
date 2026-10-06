@@ -108,7 +108,10 @@ describe('Error Handling Integration', function (): void {
 
     it('stamps exception reports with the injected clock', function (): void {
         $clock = new FakeClock('2026-01-01 12:00:00 UTC');
-        $handler = new class (new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'development']), $clock) extends SimpleErrorHandler
+        $handler = new class (new Environment(
+            sapi: 'cli',
+            envVars: ['MARKO_ENV' => 'development'],
+        ), $clock) extends SimpleErrorHandler
         {
             public ?ErrorReport $handled = null;
 
