@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Marko\ErrorsSimple\Tests\Unit\HttpAware;
 
+use DateTimeImmutable;
 use Marko\Core\Exceptions\HttpExceptionInterface;
 use Marko\Errors\ErrorReport;
 use Marko\Errors\Severity;
@@ -11,6 +12,7 @@ use Marko\ErrorsSimple\Environment;
 use Marko\ErrorsSimple\Formatters\JsonFormatter;
 use Marko\ErrorsSimple\HttpErrorStatus;
 use Marko\ErrorsSimple\SimpleErrorHandler;
+use Marko\Testing\Fake\FakeClock;
 use RuntimeException;
 use Throwable;
 
@@ -76,7 +78,7 @@ function handleWith(
     Environment $environment,
     Throwable $throwable,
 ): array {
-    $handler = new CapturingErrorHandler($environment);
+    $handler = new CapturingErrorHandler($environment, new FakeClock());
 
     ob_start();
     $handler->handleException($throwable);
@@ -101,7 +103,7 @@ describe('Environment::acceptsJson()', function (): void {
 
 describe('JsonFormatter', function (): void {
     it('renders a generic JSON body in production', function (): void {
-        $report = ErrorReport::fromThrowable(new RuntimeException('SQLSTATE secret at /var/www'), Severity::Error);
+        $report = ErrorReport::fromThrowable(new RuntimeException('SQLSTATE secret at /var/www'), Severity::Error, new DateTimeImmutable());
 
         $json = (new JsonFormatter(webEnvironment(production: true)))->format($report);
 
@@ -110,7 +112,7 @@ describe('JsonFormatter', function (): void {
     });
 
     it('renders message, class and trimmed trace as JSON in development', function (): void {
-        $report = ErrorReport::fromThrowable(new RuntimeException('Boom'), Severity::Error);
+        $report = ErrorReport::fromThrowable(new RuntimeException('Boom'), Severity::Error, new DateTimeImmutable());
 
         $data = json_decode((new JsonFormatter(webEnvironment(production: false)))->format($report), true);
 
@@ -124,7 +126,7 @@ describe('JsonFormatter', function (): void {
     });
 
     it('renders an HTTP exception response data even in production', function (): void {
-        $report = ErrorReport::fromThrowable(new TeapotException('internal detail'), Severity::Error);
+        $report = ErrorReport::fromThrowable(new TeapotException('internal detail'), Severity::Error, new DateTimeImmutable());
 
         $json = (new JsonFormatter(webEnvironment(production: true)))->format($report);
 

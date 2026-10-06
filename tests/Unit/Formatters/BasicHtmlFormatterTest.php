@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Marko\ErrorsSimple\Tests\Unit\Formatters;
 
+use DateTimeImmutable;
 use Exception;
 use Marko\Core\Exceptions\MarkoException;
 use Marko\Errors\ErrorReport;
@@ -16,7 +17,7 @@ use ReflectionClass;
 describe('BasicHtmlFormatter', function (): void {
     it('returns valid HTML document', function (): void {
         $exception = new Exception('Test error');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
         $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
         $extractor = new CodeSnippetExtractor();
 
@@ -38,7 +39,7 @@ describe('BasicHtmlFormatter', function (): void {
 
     it('displays the exception class name', function (): void {
         $exception = new Exception('Test error');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
         $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
         $extractor = new CodeSnippetExtractor();
 
@@ -50,7 +51,7 @@ describe('BasicHtmlFormatter', function (): void {
 
     it('displays the error message', function (): void {
         $exception = new Exception('Something went wrong with the request');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
         $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
         $extractor = new CodeSnippetExtractor();
 
@@ -62,7 +63,7 @@ describe('BasicHtmlFormatter', function (): void {
 
     it('displays file and line number', function (): void {
         $exception = new Exception('Test error');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
         $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
         $extractor = new CodeSnippetExtractor();
 
@@ -75,7 +76,7 @@ describe('BasicHtmlFormatter', function (): void {
 
     it('displays formatted stack trace', function (): void {
         $exception = new Exception('Test error');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
         $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
         $extractor = new CodeSnippetExtractor();
 
@@ -112,7 +113,7 @@ PHP;
             $lineProperty = $reflection->getProperty('line');
             $lineProperty->setValue($exception, 5);
 
-            $report = ErrorReport::fromThrowable($exception, Severity::Error);
+            $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
             $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
             $extractor = new CodeSnippetExtractor();
 
@@ -150,7 +151,7 @@ PHP;
             $lineProperty = $reflection->getProperty('line');
             $lineProperty->setValue($exception, 5);
 
-            $report = ErrorReport::fromThrowable($exception, Severity::Error);
+            $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
             $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
             $extractor = new CodeSnippetExtractor();
 
@@ -186,7 +187,7 @@ PHP;
             $lineProperty = $reflection->getProperty('line');
             $lineProperty->setValue($exception, 5);
 
-            $report = ErrorReport::fromThrowable($exception, Severity::Error);
+            $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
             $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
             $extractor = new CodeSnippetExtractor();
 
@@ -207,7 +208,7 @@ PHP;
             'Module failed to load',
             context: 'While loading module "blog" during application bootstrap',
         );
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
         $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
         $extractor = new CodeSnippetExtractor();
 
@@ -224,7 +225,7 @@ PHP;
             'Configuration file not found',
             suggestion: 'Run "marko init" to create a default configuration file',
         );
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
         $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
         $extractor = new CodeSnippetExtractor();
 
@@ -239,7 +240,7 @@ PHP;
     it('displays previous exception when present', function (): void {
         $previous = new Exception('Database connection failed');
         $exception = new Exception('Could not fetch user data', previous: $previous);
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
         $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
         $extractor = new CodeSnippetExtractor();
 
@@ -253,7 +254,7 @@ PHP;
 
     it('escapes HTML entities in error messages', function (): void {
         $exception = new Exception('Error with <script>alert("XSS")</script> in message');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
         $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
         $extractor = new CodeSnippetExtractor();
 
@@ -278,7 +279,7 @@ PHP;
             $lineProperty = $reflection->getProperty('line');
             $lineProperty->setValue($exception, 2);
 
-            $report = ErrorReport::fromThrowable($exception, Severity::Error);
+            $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
             $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
             $extractor = new CodeSnippetExtractor();
 
@@ -310,7 +311,7 @@ PHP;
             $lineProperty = $reflection->getProperty('line');
             $lineProperty->setValue($exception, 2);
 
-            $report = ErrorReport::fromThrowable($exception, Severity::Error);
+            $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
             $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
             $extractor = new CodeSnippetExtractor();
 
@@ -327,7 +328,7 @@ PHP;
 
     it('formats in development mode with full details', function (): void {
         $exception = new Exception('Detailed error message');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
         $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
         $extractor = new CodeSnippetExtractor();
 
@@ -342,7 +343,7 @@ PHP;
 
     it('formats in production mode with generic message', function (): void {
         $exception = new Exception('Sensitive error details should not be shown');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
         $environment = new Environment(envVars: ['MARKO_ENV' => 'production']);
         $extractor = new CodeSnippetExtractor();
 
@@ -358,7 +359,7 @@ PHP;
 
     it('uses embedded styles for reliability', function (): void {
         $exception = new Exception('Test error');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
         $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
         $extractor = new CodeSnippetExtractor();
 
@@ -373,7 +374,7 @@ PHP;
 
     it('includes copy-as-markdown button in development mode', function (): void {
         $exception = new Exception('Test error');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
         $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
         $extractor = new CodeSnippetExtractor();
 
@@ -387,7 +388,7 @@ PHP;
 
     it('does not include copy button in production mode', function (): void {
         $exception = new Exception('Test error');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
         $environment = new Environment(envVars: ['MARKO_ENV' => 'production']);
         $extractor = new CodeSnippetExtractor();
 
@@ -411,7 +412,7 @@ PHP;
             $lineProperty = $reflection->getProperty('line');
             $lineProperty->setValue($exception, 2);
 
-            $report = ErrorReport::fromThrowable($exception, Severity::Error);
+            $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
             $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
             $extractor = new CodeSnippetExtractor();
 

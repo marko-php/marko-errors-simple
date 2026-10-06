@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Marko\ErrorsSimple\Tests\Feature;
 
+use DateTimeImmutable;
 use Exception;
 use Marko\Core\Exceptions\MarkoException;
 use Marko\Errors\Contracts\ErrorHandlerInterface;
@@ -13,6 +14,7 @@ use Marko\ErrorsSimple\CodeSnippetExtractor;
 use Marko\ErrorsSimple\Environment;
 use Marko\ErrorsSimple\Formatters\TextFormatter;
 use Marko\ErrorsSimple\SimpleErrorHandler;
+use Marko\Testing\Fake\FakeClock;
 use ReflectionClass;
 use RuntimeException;
 
@@ -45,7 +47,7 @@ class TestableErrorHandler extends SimpleErrorHandler
 describe('Error Handling Integration', function (): void {
     it('handles thrown exception in CLI context', function (): void {
         $env = new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new TestableErrorHandler($env);
+        $handler = new TestableErrorHandler($env, new FakeClock());
 
         ob_start();
         $handler->handleException(new RuntimeException('Test error'));
@@ -57,7 +59,7 @@ describe('Error Handling Integration', function (): void {
 
     it('handles thrown exception in web context', function (): void {
         $env = new Environment(sapi: 'cgi', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new TestableErrorHandler($env);
+        $handler = new TestableErrorHandler($env, new FakeClock());
 
         ob_start();
         $handler->handleException(new RuntimeException('Test web error'));
@@ -70,7 +72,7 @@ describe('Error Handling Integration', function (): void {
 
     it('handles PHP warning in CLI context non-destructively', function (): void {
         $env = new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new TestableErrorHandler($env);
+        $handler = new TestableErrorHandler($env, new FakeClock());
 
         $originalLevel = error_reporting();
         error_reporting(E_ALL);
@@ -89,9 +91,42 @@ describe('Error Handling Integration', function (): void {
             ->and($handler->nonFatalReports[0]->message)->toBe('Test warning message');
     });
 
+    it('stamps error reports with the injected clock', function (): void {
+        $clock = new FakeClock('2026-01-01 12:00:00 UTC');
+        $handler = new TestableErrorHandler(
+            new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'development']),
+            $clock,
+        );
+
+        $originalLevel = error_reporting();
+        error_reporting(E_ALL);
+        $handler->handleError(E_WARNING, 'Clocked warning', '/test/file.php', 42);
+        error_reporting($originalLevel);
+
+        expect($handler->nonFatalReports[0]->timestamp)->toEqual($clock->now());
+    });
+
+    it('stamps exception reports with the injected clock', function (): void {
+        $clock = new FakeClock('2026-01-01 12:00:00 UTC');
+        $handler = new class (new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'development']), $clock) extends SimpleErrorHandler
+        {
+            public ?ErrorReport $handled = null;
+
+            public function handle(
+                ErrorReport $report,
+            ): void {
+                $this->handled = $report;
+            }
+        };
+
+        $handler->handleException(new RuntimeException('Clocked exception'));
+
+        expect($handler->handled?->timestamp)->toEqual($clock->now());
+    });
+
     it('handles PHP warning in web context non-destructively', function (): void {
         $env = new Environment(sapi: 'cgi', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new TestableErrorHandler($env);
+        $handler = new TestableErrorHandler($env, new FakeClock());
 
         $originalLevel = error_reporting();
         error_reporting(E_ALL);
@@ -113,7 +148,7 @@ describe('Error Handling Integration', function (): void {
 
     it('handles MarkoException with context and suggestion', function (): void {
         $env = new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new TestableErrorHandler($env);
+        $handler = new TestableErrorHandler($env, new FakeClock());
 
         $exception = new MarkoException(
             message: 'Configuration error occurred',
@@ -133,7 +168,7 @@ describe('Error Handling Integration', function (): void {
 
     it('handles nested exception with previous', function (): void {
         $env = new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new TestableErrorHandler($env);
+        $handler = new TestableErrorHandler($env, new FakeClock());
 
         $previousException = new RuntimeException('Original database error');
         $mainException = new Exception('Service initialization failed', 0, $previousException);
@@ -150,7 +185,7 @@ describe('Error Handling Integration', function (): void {
 
     it('shows full details in development mode', function (): void {
         $env = new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new TestableErrorHandler($env);
+        $handler = new TestableErrorHandler($env, new FakeClock());
 
         $exception = new Exception('Detailed development error');
 
@@ -166,10 +201,10 @@ describe('Error Handling Integration', function (): void {
 
     it('hides details in production mode', function (): void {
         $env = new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'production']);
-        $handler = new TestableErrorHandler($env);
+        $handler = new TestableErrorHandler($env, new FakeClock());
 
         $exception = new Exception('Sensitive production error');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
 
         ob_start();
         $handler->handle($report);
@@ -183,7 +218,7 @@ describe('Error Handling Integration', function (): void {
 
     it('extracts code snippet from error location', function (): void {
         $env = new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new TestableErrorHandler($env);
+        $handler = new TestableErrorHandler($env, new FakeClock());
 
         // Create exception that points to this file
         $exception = new Exception('Code snippet test');
@@ -210,7 +245,7 @@ describe('Error Handling Integration', function (): void {
     it('can be resolved from container via interface', function (): void {
         // Simple mock container that returns the handler
         $env = new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new SimpleErrorHandler($env);
+        $handler = new SimpleErrorHandler($env, new FakeClock());
 
         $container = new class ($handler)
         {
@@ -236,7 +271,7 @@ describe('Error Handling Integration', function (): void {
 
     it('handles deprecation notices without clearing output buffers', function (): void {
         $env = new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new TestableErrorHandler($env);
+        $handler = new TestableErrorHandler($env, new FakeClock());
 
         $originalLevel = error_reporting();
         error_reporting(E_ALL);
@@ -260,7 +295,7 @@ describe('Error Handling Integration', function (): void {
 
     it('registers and unregisters cleanly', function (): void {
         $env = new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new SimpleErrorHandler($env);
+        $handler = new SimpleErrorHandler($env, new FakeClock());
 
         // Verify handler implements required registration methods
         expect(method_exists($handler, 'register'))->toBeTrue()
@@ -292,10 +327,10 @@ describe('Error Handling Integration', function (): void {
             }
         };
 
-        $handler = new TestableErrorHandler($env, $failingFormatter);
+        $handler = new TestableErrorHandler($env, new FakeClock(), $failingFormatter);
 
         $exception = new Exception('Fallback test error');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
 
         ob_start();
         $handler->handle($report);

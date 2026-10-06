@@ -11,6 +11,7 @@ use Marko\Errors\Severity;
 use Marko\ErrorsSimple\Formatters\BasicHtmlFormatter;
 use Marko\ErrorsSimple\Formatters\JsonFormatter;
 use Marko\ErrorsSimple\Formatters\TextFormatter;
+use Psr\Clock\ClockInterface;
 use Throwable;
 
 class SimpleErrorHandler implements ErrorHandlerInterface
@@ -31,6 +32,7 @@ class SimpleErrorHandler implements ErrorHandlerInterface
 
     public function __construct(
         private readonly Environment $environment,
+        private readonly ClockInterface $clock,
         ?TextFormatter $textFormatter = null,
         ?BasicHtmlFormatter $htmlFormatter = null,
     ) {
@@ -104,7 +106,7 @@ class SimpleErrorHandler implements ErrorHandlerInterface
     public function handleException(
         Throwable $exception,
     ): void {
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, $this->clock->now());
         $this->handle($report);
     }
 
@@ -150,7 +152,7 @@ class SimpleErrorHandler implements ErrorHandlerInterface
         // Non-fatal errors (deprecations, notices, warnings) are reported loudly
         // but don't clear output buffers or replace the in-progress response.
         if ($severity === Severity::Deprecated || $severity === Severity::Notice || $severity === Severity::Warning) {
-            $report = ErrorReport::fromThrowable($exception, $severity);
+            $report = ErrorReport::fromThrowable($exception, $severity, $this->clock->now());
             $this->handleNonFatal($report);
 
             return true;

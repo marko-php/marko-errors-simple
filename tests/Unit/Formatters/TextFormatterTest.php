@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Marko\ErrorsSimple\Tests\Unit\Formatters;
 
+use DateTimeImmutable;
 use Exception;
 use Marko\Core\Exceptions\MarkoException;
 use Marko\Errors\ErrorReport;
@@ -15,7 +16,7 @@ use Marko\ErrorsSimple\Formatters\TextFormatter;
 describe('TextFormatter', function (): void {
     it('formats error message with severity color', function (): void {
         $exception = new Exception('Test error message');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
 
         $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
         $extractor = new CodeSnippetExtractor();
@@ -31,7 +32,7 @@ describe('TextFormatter', function (): void {
 
     it('displays the exception class name', function (): void {
         $exception = new Exception('Test error message');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
 
         $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
         $extractor = new CodeSnippetExtractor();
@@ -44,7 +45,7 @@ describe('TextFormatter', function (): void {
 
     it('displays the error message', function (): void {
         $exception = new Exception('Test error message');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
 
         $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
         $extractor = new CodeSnippetExtractor();
@@ -57,7 +58,7 @@ describe('TextFormatter', function (): void {
 
     it('displays file and line number', function (): void {
         $exception = new Exception('Test error message');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
 
         $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
         $extractor = new CodeSnippetExtractor();
@@ -71,7 +72,7 @@ describe('TextFormatter', function (): void {
 
     it('displays formatted stack trace', function (): void {
         $exception = new Exception('Test error message');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
 
         $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
         $extractor = new CodeSnippetExtractor();
@@ -88,7 +89,7 @@ describe('TextFormatter', function (): void {
     it('displays code snippet around error line', function (): void {
         // Test the current file which exists
         $exception = new Exception('Test error message');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
 
         $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
         $extractor = new CodeSnippetExtractor();
@@ -102,7 +103,7 @@ describe('TextFormatter', function (): void {
 
     it('highlights the error line in code snippet', function (): void {
         $exception = new Exception('Test error message');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
 
         $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
         $extractor = new CodeSnippetExtractor();
@@ -116,7 +117,7 @@ describe('TextFormatter', function (): void {
 
     it('includes line numbers in code snippet', function (): void {
         $exception = new Exception('Test error message');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
 
         $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
         $extractor = new CodeSnippetExtractor();
@@ -134,7 +135,7 @@ describe('TextFormatter', function (): void {
             message: 'Configuration error',
             context: 'While loading module configuration from app/blog/module.php',
         );
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
 
         $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
         $extractor = new CodeSnippetExtractor();
@@ -152,7 +153,7 @@ describe('TextFormatter', function (): void {
             context: '',
             suggestion: 'Check that the module.php file exists and is readable',
         );
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
 
         $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
         $extractor = new CodeSnippetExtractor();
@@ -167,7 +168,7 @@ describe('TextFormatter', function (): void {
     it('displays previous exception when present', function (): void {
         $previous = new Exception('Original database error');
         $exception = new Exception('Failed to load user', 0, $previous);
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
 
         $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
         $extractor = new CodeSnippetExtractor();
@@ -181,7 +182,7 @@ describe('TextFormatter', function (): void {
 
     it('detects ANSI support and disables colors when not available', function (): void {
         $exception = new Exception('Test error message');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
 
         // Non-CLI environment typically doesn't support ANSI
         $environment = new Environment(sapi: 'cgi', envVars: ['MARKO_ENV' => 'development']);
@@ -197,7 +198,7 @@ describe('TextFormatter', function (): void {
 
     it('can be forced to disable colors', function (): void {
         $exception = new Exception('Test error message');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
 
         // CLI environment but colors explicitly disabled
         $environment = new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'development']);
@@ -213,7 +214,7 @@ describe('TextFormatter', function (): void {
 
     it('truncates very long file paths for readability', function (): void {
         $exception = new Exception('Test error message');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
 
         $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
         $extractor = new CodeSnippetExtractor();
@@ -234,7 +235,7 @@ describe('TextFormatter', function (): void {
 
     it('formats in development mode with full details', function (): void {
         $exception = new Exception('Test error message');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
 
         $environment = new Environment(envVars: ['MARKO_ENV' => 'development']);
         $extractor = new CodeSnippetExtractor();
@@ -250,7 +251,7 @@ describe('TextFormatter', function (): void {
 
     it('formats in production mode with minimal output', function (): void {
         $exception = new Exception('Test error message');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
 
         // Production mode - no MARKO_ENV set or set to production
         $environment = new Environment(envVars: ['MARKO_ENV' => 'production']);

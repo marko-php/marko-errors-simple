@@ -6,6 +6,7 @@ namespace Marko\ErrorsSimple\Tests\Unit;
 
 use Marko\ErrorsSimple\Environment;
 use Marko\ErrorsSimple\SimpleErrorHandler;
+use Marko\Testing\Fake\FakeClock;
 use ReflectionMethod;
 
 /**
@@ -99,7 +100,7 @@ describe('SimpleErrorHandler Registration', function (): void {
 
     it('registers as PHP exception handler', function (): void {
         $environment = new Environment();
-        $handler = new TestableRegistrationHandler($environment);
+        $handler = new TestableRegistrationHandler($environment, new FakeClock());
 
         $handler->register();
 
@@ -114,7 +115,7 @@ describe('SimpleErrorHandler Registration', function (): void {
 
     it('registers as PHP error handler', function (): void {
         $environment = new Environment();
-        $handler = new TestableRegistrationHandler($environment);
+        $handler = new TestableRegistrationHandler($environment, new FakeClock());
 
         $handler->register();
 
@@ -129,7 +130,7 @@ describe('SimpleErrorHandler Registration', function (): void {
 
     it('registers shutdown function for fatal errors', function (): void {
         $environment = new Environment();
-        $handler = new TestableRegistrationHandler($environment);
+        $handler = new TestableRegistrationHandler($environment, new FakeClock());
 
         // Shutdown functions can't be directly tested, but we can verify
         // the handleShutdown method exists and is callable
@@ -148,7 +149,7 @@ describe('SimpleErrorHandler Registration', function (): void {
         set_exception_handler($previousHandler);
 
         $environment = new Environment();
-        $handler = new TestableRegistrationHandler($environment);
+        $handler = new TestableRegistrationHandler($environment, new FakeClock());
 
         $handler->register();
 
@@ -163,7 +164,7 @@ describe('SimpleErrorHandler Registration', function (): void {
         set_error_handler($previousHandler);
 
         $environment = new Environment();
-        $handler = new TestableRegistrationHandler($environment);
+        $handler = new TestableRegistrationHandler($environment, new FakeClock());
 
         $handler->register();
 
@@ -178,7 +179,7 @@ describe('SimpleErrorHandler Registration', function (): void {
         set_exception_handler($previousHandler);
 
         $environment = new Environment();
-        $handler = new TestableRegistrationHandler($environment);
+        $handler = new TestableRegistrationHandler($environment, new FakeClock());
 
         $handler->register();
         $handler->unregister();
@@ -196,7 +197,7 @@ describe('SimpleErrorHandler Registration', function (): void {
         set_error_handler($previousHandler);
 
         $environment = new Environment();
-        $handler = new TestableRegistrationHandler($environment);
+        $handler = new TestableRegistrationHandler($environment, new FakeClock());
 
         $handler->register();
         $handler->unregister();
@@ -210,7 +211,7 @@ describe('SimpleErrorHandler Registration', function (): void {
 
     it('handles fatal errors via shutdown function', function (): void {
         $environment = new Environment();
-        $handler = new TestableRegistrationHandler($environment);
+        $handler = new TestableRegistrationHandler($environment, new FakeClock());
 
         // We can't trigger a real fatal error in tests, but we can verify
         // the handleShutdown method would call handleError for fatal errors
@@ -241,7 +242,7 @@ describe('SimpleErrorHandler Registration', function (): void {
 
     it('only handles fatal error once in shutdown', function (): void {
         $environment = new Environment();
-        $handler = new TestableRegistrationHandler($environment);
+        $handler = new TestableRegistrationHandler($environment, new FakeClock());
 
         // Initially, fatal error has not been handled
         expect($handler->hasHandledFatalError())->toBeFalse();
@@ -256,7 +257,7 @@ describe('SimpleErrorHandler Registration', function (): void {
 
     it('tracks registration state', function (): void {
         $environment = new Environment();
-        $handler = new TestableRegistrationHandler($environment);
+        $handler = new TestableRegistrationHandler($environment, new FakeClock());
 
         // Initially not registered
         expect($handler->isRegistered())->toBeFalse();
@@ -272,7 +273,7 @@ describe('SimpleErrorHandler Registration', function (): void {
 
     it('prevents double registration', function (): void {
         $environment = new Environment();
-        $handler = new TestableRegistrationHandler($environment);
+        $handler = new TestableRegistrationHandler($environment, new FakeClock());
 
         // First registration
         $handler->register();
@@ -299,7 +300,7 @@ describe('SimpleErrorHandler Registration', function (): void {
 
     it('allows re-registration after unregister', function (): void {
         $environment = new Environment();
-        $handler = new TestableRegistrationHandler($environment);
+        $handler = new TestableRegistrationHandler($environment, new FakeClock());
 
         // First registration
         $handler->register();

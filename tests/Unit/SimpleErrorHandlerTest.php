@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Marko\ErrorsSimple\Tests\Unit;
 
+use DateTimeImmutable;
 use Exception;
 use Marko\Errors\Contracts\ErrorHandlerInterface;
 use Marko\Errors\ErrorReport;
@@ -12,6 +13,7 @@ use Marko\ErrorsSimple\CodeSnippetExtractor;
 use Marko\ErrorsSimple\Environment;
 use Marko\ErrorsSimple\Formatters\TextFormatter;
 use Marko\ErrorsSimple\SimpleErrorHandler;
+use Marko\Testing\Fake\FakeClock;
 use RuntimeException;
 
 /**
@@ -75,14 +77,14 @@ class WebSapiNonFatalCapturingHandler extends SimpleErrorHandler
 describe('SimpleErrorHandler', function (): void {
     it('implements ErrorHandlerInterface', function (): void {
         $environment = new Environment();
-        $handler = new SimpleErrorHandler($environment);
+        $handler = new SimpleErrorHandler($environment, new FakeClock());
 
         expect($handler)->toBeInstanceOf(ErrorHandlerInterface::class);
     });
 
     it('accepts Environment dependency for context detection', function (): void {
         $environment = new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new SimpleErrorHandler($environment);
+        $handler = new SimpleErrorHandler($environment, new FakeClock());
 
         // The handler accepts the environment and can be constructed
         expect($handler)->toBeInstanceOf(SimpleErrorHandler::class);
@@ -90,10 +92,10 @@ describe('SimpleErrorHandler', function (): void {
 
     it('uses TextFormatter for CLI errors', function (): void {
         $environment = new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new TestableErrorHandler($environment);
+        $handler = new TestableErrorHandler($environment, new FakeClock());
 
         $exception = new Exception('Test CLI error');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
 
         ob_start();
         $handler->handle($report);
@@ -106,10 +108,10 @@ describe('SimpleErrorHandler', function (): void {
 
     it('uses BasicHtmlFormatter for web errors', function (): void {
         $environment = new Environment(sapi: 'cgi', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new TestableErrorHandler($environment);
+        $handler = new TestableErrorHandler($environment, new FakeClock());
 
         $exception = new Exception('Test web error');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
 
         ob_start();
         $handler->handle($report);
@@ -122,7 +124,7 @@ describe('SimpleErrorHandler', function (): void {
 
     it('creates ErrorReport from Throwable', function (): void {
         $environment = new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new TestableErrorHandler($environment);
+        $handler = new TestableErrorHandler($environment, new FakeClock());
 
         $exception = new Exception('Exception from handleException');
 
@@ -137,7 +139,7 @@ describe('SimpleErrorHandler', function (): void {
 
     it('creates ErrorReport from PHP error', function (): void {
         $environment = new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new TestableErrorHandler($environment);
+        $handler = new TestableErrorHandler($environment, new FakeClock());
 
         // Ensure warnings are reported
         $originalLevel = error_reporting();
@@ -154,7 +156,7 @@ describe('SimpleErrorHandler', function (): void {
 
     it('converts PHP errors to ErrorException', function (): void {
         $environment = new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new TestableErrorHandler($environment);
+        $handler = new TestableErrorHandler($environment, new FakeClock());
 
         $originalLevel = error_reporting();
         error_reporting(E_ALL);
@@ -170,7 +172,7 @@ describe('SimpleErrorHandler', function (): void {
 
     it('handles deprecation notices loudly but non-destructively', function (): void {
         $environment = new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new TestableErrorHandler($environment);
+        $handler = new TestableErrorHandler($environment, new FakeClock());
 
         $originalLevel = error_reporting();
         error_reporting(E_ALL);
@@ -193,7 +195,7 @@ describe('SimpleErrorHandler', function (): void {
 
     it('handles notice-level errors loudly but non-destructively', function (): void {
         $environment = new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new TestableErrorHandler($environment);
+        $handler = new TestableErrorHandler($environment, new FakeClock());
 
         $originalLevel = error_reporting();
         error_reporting(E_ALL);
@@ -212,7 +214,7 @@ describe('SimpleErrorHandler', function (): void {
 
     it('reports deprecation notices in production too', function (): void {
         $environment = new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'production']);
-        $handler = new TestableErrorHandler($environment);
+        $handler = new TestableErrorHandler($environment, new FakeClock());
 
         $originalLevel = error_reporting();
         error_reporting(E_ALL);
@@ -231,10 +233,10 @@ describe('SimpleErrorHandler', function (): void {
 
     it('outputs formatted error to stdout in CLI', function (): void {
         $environment = new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new TestableErrorHandler($environment);
+        $handler = new TestableErrorHandler($environment, new FakeClock());
 
         $exception = new Exception('Stdout test');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
 
         ob_start();
         $handler->handle($report);
@@ -247,10 +249,10 @@ describe('SimpleErrorHandler', function (): void {
 
     it('outputs formatted error to response in web', function (): void {
         $environment = new Environment(sapi: 'cgi', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new TestableErrorHandler($environment);
+        $handler = new TestableErrorHandler($environment, new FakeClock());
 
         $exception = new Exception('Web response test');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
 
         ob_start();
         $handler->handle($report);
@@ -264,7 +266,7 @@ describe('SimpleErrorHandler', function (): void {
 
     it('respects error_reporting level', function (): void {
         $environment = new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new TestableErrorHandler($environment);
+        $handler = new TestableErrorHandler($environment, new FakeClock());
 
         // Save current error_reporting level
         $originalLevel = error_reporting();
@@ -286,7 +288,7 @@ describe('SimpleErrorHandler', function (): void {
 
     it('returns true from handleError when error is handled', function (): void {
         $environment = new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new TestableErrorHandler($environment);
+        $handler = new TestableErrorHandler($environment, new FakeClock());
 
         $originalLevel = error_reporting();
         error_reporting(E_ALL);
@@ -302,10 +304,10 @@ describe('SimpleErrorHandler', function (): void {
 
     it('shows full details in development mode', function (): void {
         $environment = new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new TestableErrorHandler($environment);
+        $handler = new TestableErrorHandler($environment, new FakeClock());
 
         $exception = new Exception('Development error details');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
 
         ob_start();
         $handler->handle($report);
@@ -319,10 +321,10 @@ describe('SimpleErrorHandler', function (): void {
 
     it('shows generic message in production mode', function (): void {
         $environment = new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'production']);
-        $handler = new TestableErrorHandler($environment);
+        $handler = new TestableErrorHandler($environment, new FakeClock());
 
         $exception = new Exception('Sensitive internal error details');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
 
         ob_start();
         $handler->handle($report);
@@ -347,10 +349,10 @@ describe('SimpleErrorHandler', function (): void {
             }
         };
 
-        $handler = new TestableErrorHandler($environment, $failingFormatter);
+        $handler = new TestableErrorHandler($environment, new FakeClock(), $failingFormatter);
 
         $exception = new Exception('Original error');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
 
         ob_start();
         $handler->handle($report);
@@ -364,10 +366,10 @@ describe('SimpleErrorHandler', function (): void {
 
     it('sets HTTP 500 status code for web errors', function (): void {
         $environment = new Environment(sapi: 'cgi', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new TestableErrorHandler($environment);
+        $handler = new TestableErrorHandler($environment, new FakeClock());
 
         $exception = new Exception('Web error');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
 
         ob_start();
         $handler->handle($report);
@@ -378,10 +380,10 @@ describe('SimpleErrorHandler', function (): void {
 
     it('clears output buffer before rendering error', function (): void {
         $environment = new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new TestableErrorHandler($environment);
+        $handler = new TestableErrorHandler($environment, new FakeClock());
 
         $exception = new Exception('Buffer test');
-        $report = ErrorReport::fromThrowable($exception, Severity::Error);
+        $report = ErrorReport::fromThrowable($exception, Severity::Error, new DateTimeImmutable());
 
         ob_start();
         $handler->handle($report);
@@ -394,7 +396,7 @@ describe('SimpleErrorHandler', function (): void {
 
     it('does not clear output buffers when handling a recoverable warning', function (): void {
         $environment = new Environment(sapi: 'cli', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new TestableErrorHandler($environment);
+        $handler = new TestableErrorHandler($environment, new FakeClock());
 
         $originalLevel = error_reporting();
         error_reporting(E_ALL);
@@ -410,7 +412,7 @@ describe('SimpleErrorHandler', function (): void {
 
     it('does not replace the response with a 500 page on a recoverable warning', function (): void {
         $environment = new Environment(sapi: 'cgi', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new TestableErrorHandler($environment);
+        $handler = new TestableErrorHandler($environment, new FakeClock());
 
         $originalLevel = error_reporting();
         error_reporting(E_ALL);
@@ -429,7 +431,7 @@ describe('SimpleErrorHandler', function (): void {
 
     it('reports a non-fatal error in web SAPI instead of discarding it', function (): void {
         $environment = new Environment(sapi: 'cgi', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new WebSapiNonFatalCapturingHandler($environment);
+        $handler = new WebSapiNonFatalCapturingHandler($environment, new FakeClock());
 
         $originalLevel = error_reporting();
         error_reporting(E_ALL);
@@ -446,7 +448,7 @@ describe('SimpleErrorHandler', function (): void {
 
     it('still renders a 500 page for an uncaught exception', function (): void {
         $environment = new Environment(sapi: 'cgi', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new TestableErrorHandler($environment);
+        $handler = new TestableErrorHandler($environment, new FakeClock());
 
         ob_start();
         $handler->handleException(new Exception('Uncaught exception'));
@@ -459,7 +461,7 @@ describe('SimpleErrorHandler', function (): void {
 
     it('still handles a fatal error on shutdown', function (): void {
         $environment = new Environment(sapi: 'cgi', envVars: ['MARKO_ENV' => 'development']);
-        $handler = new TestableErrorHandler($environment);
+        $handler = new TestableErrorHandler($environment, new FakeClock());
 
         $originalLevel = error_reporting();
         error_reporting(E_ALL);
